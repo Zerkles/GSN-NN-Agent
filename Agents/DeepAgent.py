@@ -1,4 +1,4 @@
-from agents.RandomAgent import RandomAgent
+from Agents.RandomAgent import RandomAgent
 
 
 class DeepAgent(RandomAgent):
@@ -36,13 +36,4 @@ class DeepAgent(RandomAgent):
             self.model.grid.remove_agent(agent)
             return agent
 
-    def get_reward(self, action):
-        if self.will_die(action):  # Died
-            if self.model.alive_agents == 1:  # Won game
-                return 500
-            else:
-                return -500  # Lost game
 
-        return 10  # Going forward
-
-        # Killed enemy ???

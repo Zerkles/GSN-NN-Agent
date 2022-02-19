@@ -1,6 +1,6 @@
 import random
 
-from agents.RandomAgent import RandomAgent
+from Agents.RandomAgent import RandomAgent
 
 
 class ReflexAgent(RandomAgent):

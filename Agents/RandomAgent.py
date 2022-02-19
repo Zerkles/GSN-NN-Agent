@@ -1,7 +1,7 @@
 import random
 from mesa import Agent
 
-from agents.Lightpath import Lightpath
+from Agents.Lightpath import Lightpath
 
 
 class RandomAgent(Agent):
@@ -14,6 +14,7 @@ class RandomAgent(Agent):
         self.lightpath = []
         self.max_path_length = max_path_length
         self.portrayal, self.portrayal_child = None, None
+        self.score = 0
 
     def choose_action(self, legal_actions):
         return random.choice(legal_actions)
@@ -21,6 +22,7 @@ class RandomAgent(Agent):
     def step(self):
         legal_actions = self.get_legal_actions()
         action = self.choose_action(legal_actions)
+        self.score += self.get_reward(action)
         # print(self.pos, self.get_legal_actions(), action)
 
         if self.will_die(action):
@@ -44,9 +46,13 @@ class RandomAgent(Agent):
         for obj in self.lightpath:
             self.model.grid.remove_agent(obj)
 
-        self.model.alive_agents -= 1
         self.model.grid.remove_agent(self)
         self.model.schedule.remove(self)
+
+        self.model.scores.update(
+            {self.model.alive_agents: {'type': f"{self.__class__.__name__}{self.unique_id}",
+                                       'score': self.score}})
+        self.model.alive_agents -= 1
 
     def will_die(self, action):
         return action not in self.get_legal_actions() or not self.model.grid.is_cell_empty(self.calc_pos(action))
@@ -80,3 +86,14 @@ class RandomAgent(Agent):
             legal_actions.append('E')
 
         return legal_actions
+
+    def get_reward(self, action):
+        if self.will_die(action):  # Died
+            if self.model.alive_agents == 1:  # Won game
+                return 200
+            else:
+                return -500  # Lost game
+
+        return 10  # Going forward
+
+        # Killed enemy ???

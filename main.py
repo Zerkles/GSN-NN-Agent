@@ -1,13 +1,17 @@
 import random
+from statistics import mean
 
 from mesa import Model
 from mesa.space import MultiGrid
 from mesa.time import RandomActivation
 
-from agents.ReflexAgent import ReflexAgent
+from Agents.ReflexAgent import ReflexAgent
 from DQN.DeepQNetwork import DeepQNetwork
-from agents.RandomAgent import RandomAgent
-from agents.DeepAgent import DeepAgent
+from Agents.RandomAgent import RandomAgent
+from Agents.DeepAgent import DeepAgent
+import matplotlib.pyplot as plt
+
+from DQN.DeepQNetworkReplay import DeepQNetworkReplay
 
 MAP_DIM = 26
 
@@ -42,14 +46,15 @@ def getStartingDirection(position, isRandom):
 class TronModel(Model):
     def __init__(self, n_random_agents, n_reflex_agents, n_deep_agents, max_path_length, isStartingPositionRandom,
                  isTestMode,
-                 neural_network=None):
+                 dqn_obj=None):
         super().__init__()
         self.schedule = RandomActivation(self)
         self.grid = MultiGrid(MAP_DIM, MAP_DIM, torus=False)
         self.startingPositions = []
         self.alive_agents = n_random_agents + n_reflex_agents + n_deep_agents
+        self.scores = {}
 
-        self.dqn_obj = neural_network
+        self.dqn_obj = dqn_obj
         if isTestMode:
             self.dqn_obj = DeepQNetwork(epsilon=0)
             self.dqn_obj.load_model("model.save")
@@ -74,23 +79,33 @@ class TronModel(Model):
     def step(self):
         if self.alive_agents == 0:
             self.running = False
+            print(self.scores)
+            print(self.dqn_obj.epsilon)
         else:
             self.schedule.step()
 
 
 if __name__ == '__main__':
-    num_games = 1000
-    dqn_obj = DeepQNetwork(num_games, 0.25, 0.8, 0.2)
+    num_games = 300
+    dqn_obj = DeepQNetworkReplay(num_games)
+    losses = []
 
     for n in range(num_games):
         print("Run:", n)
 
         model = TronModel(n_random_agents=0, n_reflex_agents=0, n_deep_agents=4, max_path_length=676,
-                          isStartingPositionRandom=0, isTestMode=False, neural_network=dqn_obj)
+                          isStartingPositionRandom=0, isTestMode=False, dqn_obj=dqn_obj)
 
         model.run_model()
         model.dqn_obj.update_step()
+        losses.append(mean(model.dqn_obj.losses))
+        model.dqn_obj.losses = []
+
+
+    plt.plot(range(len(losses)), losses)
+    plt.yscale('log')
+    plt.savefig("plots/plot.png")
 
     dqn_model = dqn_obj.get_model()
-    dqn_model.compile(optimizer=dqn_obj.opt, loss='mse')
+    # dqn_model.compile(optimizer=dqn_obj.opt, loss='mse')
     dqn_model.save("model.save")

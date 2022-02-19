@@ -24,6 +24,8 @@ class DeepQNetwork:
         self.opt = tf.optimizers.Adam(learning_rate=self.alpha)
         self.feature_extractor = FeatureExtractor()
 
+        self.losses = []
+
     def construct_q_network(self, state_dim, action_dim):
         """Construct the q-network with q-values per action as output"""
         inputs = tf.keras.layers.Input(shape=(state_dim,))  # input dimension
@@ -75,6 +77,8 @@ class DeepQNetwork:
             # if next_state == agent.is_dead(agent.calc_next_pos(action)):
             if next_state is None:
                 next_q_value = 0  # No Q-value for terminal
+                # print("terminal state")
+                return action
             else:
                 next_q_values = tf.stop_gradient(self.q_network(next_state))  # No gradient computation
                 # next_action = self.smart_argmax(next_q_values, agent.get_legal_actions())
@@ -86,6 +90,8 @@ class DeepQNetwork:
 
             "Compute loss value"
             loss_value = (observed_q_value - current_q_value) ** 2
+            self.losses.append(loss_value.numpy())
+            # print(loss_value.numpy())
 
             "Compute gradients"
             grads = tape.gradient(loss_value, self.q_network.trainable_variables)

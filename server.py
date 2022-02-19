@@ -5,9 +5,9 @@ from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.modules import CanvasGrid
 from mesa.visualization.UserParam import UserSettableParameter
 
-from agents.DeepAgent import DeepAgent
-from agents.ReflexAgent import ReflexAgent
-from agents.RandomAgent import RandomAgent
+from Agents.DeepAgent import DeepAgent
+from Agents.ReflexAgent import ReflexAgent
+from Agents.RandomAgent import RandomAgent
 from main import TronModel
 
 number_of_colors = 12
