@@ -11,7 +11,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 class DeepQNetworkReplay:
-    def __init__(self, num_games=None, epsilon=1, gamma=0.99, alpha=0.2, minibatch_size=32):
+    def __init__(self, num_games=None, epsilon=0.6, gamma=0.8, alpha=0.01, minibatch_size=32):
         self.epsilon, self.gamma, self.alpha, self.minibatch_size = epsilon, gamma, alpha, minibatch_size
 
         self.epsilon_min = 0.20
@@ -26,7 +26,7 @@ class DeepQNetworkReplay:
         self.losses = []
 
         self.feature_extractor = FeatureExtractor()
-        self.replay_memory = []
+        self.replay_memory = np.empty(shape=(0, 5))
         self.mem_max_size = 100000
 
         self.int_to_action = {0: 'N', 1: 'S', 2: 'W', 3: 'E'}
@@ -37,7 +37,7 @@ class DeepQNetworkReplay:
         self.q_network.add(Dense(64, input_dim=self.state_dim, activation='relu'))
         self.q_network.add(Dense(32, activation='relu'))
         self.q_network.add(Dense(self.action_dim, activation='linear'))
-        self.q_network.compile(optimizer=tf.optimizers.Adam(learning_rate=self.alpha), loss='mse')
+        self.q_network.compile(optimizer=tf.optimizers.Adam(), loss='mse')  # learning rate not used !
 
     def predict_move(self, agent, _):
         state = self.feature_extractor.get_state(agent)[0].numpy()
@@ -63,8 +63,14 @@ class DeepQNetworkReplay:
 
         # add to memory, respecting memory buffer limit
         if len(self.replay_memory) > self.mem_max_size:
-            self.replay_memory.pop(0)
-        self.replay_memory.append({"s": state, "a": action_int, "r": reward, "state_next": state_next, "done": done})
+            # self.replay_memory.pop(0)
+            self.replay_memory = np.delete(self.replay_memory, 0, 0)
+
+        # self.replay_memory.append({"s": state, "a": action_int, "r": reward, "state_next": state_next, "done": done})
+        print(self.replay_memory)
+        self.replay_memory = np.append(self.replay_memory, np.array([[state, action_int, reward, state_next, done]]),
+                                       axis=0)
+        print(self.replay_memory)
 
         # Train the nnet that approximates q(s,a), using the replay memory
         self.replay()
@@ -75,20 +81,35 @@ class DeepQNetworkReplay:
 
     def replay(self):
         # choose <s,a,r,s',done> experiences randomly from the memory
-        minibatch = np.random.choice(self.replay_memory, self.minibatch_size, replace=True)
+        print(self.replay_memory.shape[0])
+        rows_ind = np.random.choice(self.replay_memory.shape[0], size=self.minibatch_size, replace=True)
+        minibatch = self.replay_memory[rows_ind, :]
+
+        # number_of_rows = an_array.shape[0]
+        # random_indices = np.random.choice(number_of_rows, size=2, replace=False)
+        #
+        # random_rows = an_array[random_indices, :]
 
         # create one list containing s, one list containing a, etc
-        s_l = np.array(list(map(lambda x: x['s'], minibatch)))
-        a_l = np.array(list(map(lambda x: x['a'], minibatch)))
-        r_l = np.array(list(map(lambda x: x['r'], minibatch)))
-        sprime_l = np.array(list(map(lambda x: x['state_next'], minibatch)))
-        done_l = np.array(list(map(lambda x: x['done'], minibatch)))
+        # s_l = np.array(list(map(lambda x: x['s'], minibatch)))
+        # a_l = np.array(list(map(lambda x: x['a'], minibatch)))
+        # r_l = np.array(list(map(lambda x: x['r'], minibatch)))
+        # sprime_l = np.array(list(map(lambda x: x['state_next'], minibatch)))
+        # done_l = np.array(list(map(lambda x: x['done'], minibatch)))
+
+
+        s_l = minibatch[:, 0]
+        a_l = minibatch[:, 1]
+        r_l = minibatch[:, 2]
+        sprime_l = minibatch[:, 3]
+        done_l = minibatch[:, 4]
 
         # Find q(s', a') for all possible actions a'. Store in list
         # We'll use the maximum of these values for q-update
-        # print("memory sprime:", sprime_l)
-        # print(sprime_l)
-        qvals_sprime_l = self.q_network.predict(sprime_l)
+        print(sprime_l.shape, sprime_l[0])
+        print(sprime_l.reshape(32,1))
+
+        qvals_sprime_l = self.q_network.predict(sprime_l.reshape(32,1))
 
         # Find q(s,a) for all possible actions a. Store in list
         target_f = self.q_network.predict(s_l)
