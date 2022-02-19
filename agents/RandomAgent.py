@@ -1,77 +1,57 @@
 import random
 from mesa import Agent
 
+from agents.Lightpath import Lightpath
+
 
 class RandomAgent(Agent):
 
-    def __init__(self, unique_id, pos, direction, model, fov, max_path_length):
-        super().__init__(pos, model)
-        self.unique_id = unique_id
+    def __init__(self, unique_id, pos, model, max_path_length):
+        super().__init__(unique_id, model)
+
         self.pos = pos
-        self.boundries = [(-1, n) for n in range(0, 27)] + [(26, n) for n in range(0, 27)] + \
-                         [(n, -1) for n in range(0, 27)] + [(n, 26) for n in range(0, 27)]
-        self.direction = direction
-        self.n_games = 0
-        self.lightpath = set()
-        self.ordered_lightpath = [self.pos]
-        self.others_lightpaths = set()
-        for point in self.boundries:
-            self.others_lightpaths.add(point)
-        self.fov = fov
+        self.last_action = None
+        self.lightpath = []
         self.max_path_length = max_path_length
+        self.portrayal, self.portrayal_child = None, None
 
-    def choose_action(self, fillings):
-        return random.choice([*fillings])
-
-    def move(self, fillings):
-        action = self.choose_action(fillings)
-        new_pos = self.calc_next_pos(action)
-
-        if self.is_dead(new_pos):
-            self.death()
-            self.model.schedule.remove(self)
-        else:
-            self.model.grid.place_agent(self, tuple(new_pos))
-            self.direction = action
-            self.pos = tuple(new_pos)
-            self.ordered_lightpath.append(self.pos)
-            self.eat_your_tail()
+    def choose_action(self, legal_actions):
+        return random.choice(legal_actions)
 
     def step(self):
-        self.lightpath.add(self.pos)
-        if self.direction == 'N':
-            fillings = ['W', 'N', 'E']
-        elif self.direction == 'S':
-            fillings = ['W', 'S', 'E']
-        elif self.direction == 'W':
-            fillings = ['N', 'W', 'S']
+        legal_actions = self.get_legal_actions()
+        action = self.choose_action(legal_actions)
+        # print(self.pos, self.get_legal_actions(), action)
+
+        if self.will_die(action):
+            self.on_death()
         else:
-            fillings = ['S', 'E', 'N']
-        self.move(fillings)
-        # self.model.grid.place_agent(self, tuple(self.pos))
+            self.make_trail()
+            self.model.grid.move_agent(self, self.calc_pos(action))
+            self.last_action = action
+            self.eat_your_tail()
+
+    def make_trail(self):
+        lightpath = Lightpath(self.model.next_id(), self.model, self.pos, self.unique_id, self.portrayal_child)
+        self.lightpath.append(lightpath)
+        self.model.grid.place_agent(lightpath, self.pos)
 
     def eat_your_tail(self):
-        if len(self.ordered_lightpath) > self.max_path_length:
-            to_delete = self.ordered_lightpath[0]
-            self.lightpath.remove(to_delete)
-            self.ordered_lightpath = self.ordered_lightpath[1:]
-            self.model.grid._remove_agent(to_delete,
-                                          self.model.grid[to_delete[0], to_delete[1]][0])
+        if len(self.lightpath) > self.max_path_length:
+            self.model.grid.remove_agent(self.lightpath.pop(0))
 
-            for agent in self.model.schedule.agents:
-                if agent.unique_id != self.unique_id:
-                    if to_delete in agent.others_lightpaths:
-                        agent.others_lightpaths.remove(to_delete)
+    def on_death(self):
+        for obj in self.lightpath:
+            self.model.grid.remove_agent(obj)
 
-    def death(self):
-        for coords in self.lightpath:
-            for agent in self.model.schedule.agents:
-                if agent.unique_id != self.unique_id:
-                    if coords in agent.others_lightpaths:
-                        agent.others_lightpaths.remove(coords)
-            self.model.grid._remove_agent(coords, self.model.grid[coords[0], coords[1]][0])
+        self.model.alive_agents -= 1
+        self.model.grid.remove_agent(self)
+        self.model.schedule.remove(self)
 
-    def calc_next_pos(self, action):
+    def will_die(self, action):
+        return action not in self.get_legal_actions() or not self.model.grid.is_cell_empty(self.calc_pos(action))
+
+    def calc_pos(self, action):
         x, y = self.pos
 
         if action == 'N':
@@ -82,7 +62,21 @@ class RandomAgent(Agent):
             x -= 1
         elif action == 'E':
             x += 1
+
         return tuple([x, y])
 
-    def is_dead(self, new_pos):
-        return tuple(new_pos) in self.boundries or not self.model.grid.is_cell_empty(tuple(new_pos))
+    def get_legal_actions(self):
+        legal_actions = []
+        x, y = self.pos
+
+        if y + 1 < self.model.grid.height and self.last_action != 'S':
+            legal_actions.append('N')
+        if y - 1 >= 0 and self.last_action != 'N':
+            legal_actions.append('S')
+
+        if x - 1 >= 0 and self.last_action != 'E':
+            legal_actions.append('W')
+        if x + 1 < self.model.grid.width and self.last_action != 'W':
+            legal_actions.append('E')
+
+        return legal_actions

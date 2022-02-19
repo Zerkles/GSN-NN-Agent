@@ -1,14 +1,15 @@
-import pickle
 import random
 
 from mesa import Model
 from mesa.space import MultiGrid
 from mesa.time import RandomActivation
 
-from agents.LightcycleAgent import LightcycleAgent
-from agents.NNUtilities import DeepNeuralNetwork
+from agents.ReflexAgent import ReflexAgent
+from DQN.DeepQNetwork import DeepQNetwork
 from agents.RandomAgent import RandomAgent
 from agents.DeepAgent import DeepAgent
+
+MAP_DIM = 26
 
 
 def getStartingPosition(startingPositions, isRandom):
@@ -26,76 +27,70 @@ def getStartingPosition(startingPositions, isRandom):
 def getStartingDirection(position, isRandom):
     if isRandom:
         return random.choice(['N', 'S', 'W', 'E'])
-    if max(26 - position[0], position[0]) > max(26 - position[1], position[1]):
-        if 26 - position[0] > position[0]:
+    if max(MAP_DIM - position[0], position[0]) > max(MAP_DIM - position[1], position[1]):
+        if MAP_DIM - position[0] > position[0]:
             return 'E'
         else:
             return 'W'
     else:
-        if 26 - position[1] > position[1]:
+        if MAP_DIM - position[1] > position[1]:
             return 'N'
         else:
             return 'S'
 
 
 class TronModel(Model):
-    def __init__(self, n_random_agents, n_light_agents, n_deep_agents, max_path_length, fov, isStartingPositionRandom,
-                 neural_network=None, mode='show'):
+    def __init__(self, n_random_agents, n_reflex_agents, n_deep_agents, max_path_length, isStartingPositionRandom,
+                 isTestMode,
+                 neural_network=None):
         super().__init__()
         self.schedule = RandomActivation(self)
-        self.grid = MultiGrid(26, 26, torus=False)
+        self.grid = MultiGrid(MAP_DIM, MAP_DIM, torus=False)
         self.startingPositions = []
+        self.alive_agents = n_random_agents + n_reflex_agents + n_deep_agents
 
-        self.neural_network = neural_network
-        if mode == 'show':
-            self.neural_network=DeepNeuralNetwork()
-            self.neural_network.load_model("model.save")
+        self.dqn_obj = neural_network
+        if isTestMode:
+            self.dqn_obj = DeepQNetwork(epsilon=0)
+            self.dqn_obj.load_model("model.save")
 
-        ag_lst = ['random'] * n_random_agents + ['light'] * n_light_agents + ['deep'] * n_deep_agents
+        ag_lst = ['random'] * n_random_agents + ['light'] * n_reflex_agents + ['deep'] * n_deep_agents
 
         for i in range(len(ag_lst)):
             self.startingPositions.append(getStartingPosition(self.startingPositions, isStartingPositionRandom))
 
             if ag_lst[i] == 'random':
-                a = RandomAgent(i, self.startingPositions[-1],
-                                getStartingDirection(self.startingPositions[-1], isStartingPositionRandom), self, fov,
-                                max_path_length)
+                a = RandomAgent(self.next_id(), self.startingPositions[-1], self, max_path_length)
+
             elif ag_lst[i] == 'light':
-                a = LightcycleAgent(i, self.startingPositions[-1],
-                                    getStartingDirection(self.startingPositions[-1], isStartingPositionRandom), self,
-                                    fov,
-                                    max_path_length)
+                a = ReflexAgent(self.next_id(), self.startingPositions[-1], self, max_path_length)
+
             else:
-                a = DeepAgent(i, self.startingPositions[-1],
-                              getStartingDirection(self.startingPositions[-1], isStartingPositionRandom), self, fov,
-                              max_path_length)
+                a = DeepAgent(self.next_id(), self.startingPositions[-1], self, max_path_length)
 
             self.schedule.add(a)
             self.grid.place_agent(a, self.startingPositions[-1])
 
-    def n_agents_left(self):
-        return sum([isinstance(x, (LightcycleAgent, RandomAgent, DeepAgent)) for x in self.schedule.agents])
-
     def step(self):
-        self.schedule.step()
-
-        if self.n_agents_left() == 0:
-            # save network
+        if self.alive_agents == 0:
             self.running = False
+        else:
+            self.schedule.step()
 
 
 if __name__ == '__main__':
     num_games = 1000
-    neural_network = DeepNeuralNetwork(num_games, 0.25, 0.8, 0.2)
+    dqn_obj = DeepQNetwork(num_games, 0.25, 0.8, 0.2)
 
+    for n in range(num_games):
+        print("Run:", n)
 
-    for i in range(num_games):
-        print("Run:", i)
-
-        model = TronModel(n_random_agents=0, n_light_agents=0, n_deep_agents=4, max_path_length=676, fov=26,
-                          isStartingPositionRandom=0, neural_network=neural_network, mode='train')
+        model = TronModel(n_random_agents=0, n_reflex_agents=0, n_deep_agents=4, max_path_length=676,
+                          isStartingPositionRandom=0, isTestMode=False, neural_network=dqn_obj)
 
         model.run_model()
-        model.neural_network.update_after_game()
+        model.dqn_obj.update_step()
 
-    neural_network.get_model().save("model.save")
+    dqn_model = dqn_obj.get_model()
+    dqn_model.compile(optimizer=dqn_obj.opt, loss='mse')
+    dqn_model.save("model.save")
