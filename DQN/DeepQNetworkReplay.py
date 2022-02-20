@@ -11,7 +11,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 class DeepQNetworkReplay:
-    def __init__(self, num_games=None, epsilon=1, gamma=0.99, alpha=0.2, minibatch_size=32):
+    def __init__(self, num_games=None, epsilon=0.8, gamma=0.8, alpha=0.001, minibatch_size=32):
         self.epsilon, self.gamma, self.alpha, self.minibatch_size = epsilon, gamma, alpha, minibatch_size
 
         self.epsilon_min = 0.20
