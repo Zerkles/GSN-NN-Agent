@@ -12,6 +12,7 @@ from Agents.DeepAgent import DeepAgent
 import matplotlib.pyplot as plt
 
 from DQN.DeepQNetworkReplay import DeepQNetworkReplay
+from DQN.DeepQNetworkReplayFull import DeepQNetworkReplayFull
 
 MAP_DIM = 26
 
@@ -80,14 +81,14 @@ class TronModel(Model):
         if self.alive_agents == 0:
             self.running = False
             print(self.scores)
-            print(self.dqn_obj.epsilon)
+            # print(self.dqn_obj.epsilon)
         else:
             self.schedule.step()
 
 
 if __name__ == '__main__':
-    num_games = 300
-    dqn_obj = DeepQNetworkReplay(num_games)
+    num_games = 3000
+    dqn_obj = DeepQNetworkReplayFull(num_games)
     losses = []
 
     for n in range(num_games):
@@ -101,11 +102,9 @@ if __name__ == '__main__':
         losses.append(mean(model.dqn_obj.losses))
         model.dqn_obj.losses = []
 
-
     plt.plot(range(len(losses)), losses)
     plt.yscale('log')
-    plt.savefig("plots/plot.png")
+    plt.savefig("plots/log_loss.png")
 
     dqn_model = dqn_obj.get_model()
-    # dqn_model.compile(optimizer=dqn_obj.opt, loss='mse')
     dqn_model.save("model.save")

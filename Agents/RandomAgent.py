@@ -93,7 +93,9 @@ class RandomAgent(Agent):
                 return 200
             else:
                 return -500  # Lost game
-
-        return 10  # Going forward
+        return 10
+        # if not self.will_die(action):
+        #     return 10  # Going forward
+        # return -100
 
         # Killed enemy ???
