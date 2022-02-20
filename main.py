@@ -86,7 +86,7 @@ class TronModel(Model):
             self.schedule.step()
 
 
-N_GAMES = 1000
+N_GAMES = 300
 DQN_OBJ_TYPE = DeepQNetworkReplayFull
 
 if __name__ == '__main__':

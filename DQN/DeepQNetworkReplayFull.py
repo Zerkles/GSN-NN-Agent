@@ -12,12 +12,15 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 class DeepQNetworkReplayFull(DeepQNetworkReplay):
-    def __init__(self, num_games=0, epsilon=0.8, gamma=0.8, alpha=0.001, minibatch_size=32):
+    def __init__(self, num_games=000.1, epsilon=0.8, gamma=0.8, alpha=0.001, minibatch_size=32):
         super().__init__(num_games, epsilon, gamma, alpha, minibatch_size)
 
         self.nn_q = self.construct_q_network()
         self.nn_target = self.construct_q_network()
-        self.C = 100
+        self.C = int(self.num_games / 10.0)
+
+        if self.C == 0:
+            self.C = 1
 
     def construct_q_network(self):
         model = Sequential()
