@@ -24,7 +24,7 @@ class DeepQNetworkReplay:
         self.action_dim = 4
         self.replay_memory = []
         self.mem_max_size = 100000
-        self.q_network = self.construct_q_network()
+        self.nn_target = self.nn_q = self.construct_q_network()
 
         self.feature_extractor = FeatureExtractor()
         self.losses = []
@@ -44,7 +44,7 @@ class DeepQNetworkReplay:
         if np.random.random() < self.epsilon:
             action_int = random.choice(range(self.action_dim))
         else:
-            qvals_s = self.q_network.predict(state.reshape(1, self.state_dim))
+            qvals_s = self.nn_q.predict(state.reshape(1, self.state_dim))
             action_int = np.argmax(qvals_s)
 
         # Take step, store results
@@ -73,15 +73,17 @@ class DeepQNetworkReplay:
         s_l = np.array(list(map(lambda x: x['s'], minibatch)))
         a_l = np.array(list(map(lambda x: x['a'], minibatch)))
         r_l = np.array(list(map(lambda x: x['r'], minibatch)))
-        s_next_l = np.array(list(map(lambda x: x['state_next'], minibatch)))
+        sprime_l = np.array(list(map(lambda x: x['state_next'], minibatch)))
         terminal_l = np.array(list(map(lambda x: x['terminal'], minibatch)))
 
         # Find q(s', a') for all possible actions a'. Store in list
         # We'll use the maximum of these values for q-update
-        qvals_sprime_l = self.q_network.predict(s_next_l)
+        # print("memory sprime:", sprime_l)
+        # print(sprime_l)
+        qvals_sprime_l = self.nn_target.predict(sprime_l)
 
         # Find q(s,a) for all possible actions a. Store in list
-        target_f = self.q_network.predict(s_l)
+        target_f = self.nn_q.predict(s_l)
 
         # q-update target
         # For the action we took, use the q-update value
@@ -95,7 +97,7 @@ class DeepQNetworkReplay:
 
         # Update weights of neural network with fit()
         # Loss function is 0 for actions we didn't take
-        history = self.q_network.fit(s_l, target_f, epochs=1, verbose=0)
+        history = self.nn_q.fit(s_l, target_f, epochs=1, verbose=0)
         self.losses.append(history.history['loss'][0])
 
     def update_step(self):
@@ -103,7 +105,7 @@ class DeepQNetworkReplay:
             self.epsilon -= self.epsilon_diff
 
     def get_model(self):
-        return self.q_network
+        return self.nn_q
 
     def load_model(self, filepath):
-        self.q_network = tf.keras.models.load_model(filepath)
+        self.nn_q = tf.keras.models.load_model(filepath)

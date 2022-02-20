@@ -1,4 +1,5 @@
 import random
+import time
 from statistics import mean
 
 from mesa import Model
@@ -56,7 +57,7 @@ class TronModel(Model):
 
         self.dqn_obj = dqn_obj
         if isTestMode:
-            self.dqn_obj.epsilon = 0.5
+            self.dqn_obj.epsilon = 0
             self.dqn_obj.load_model("model.save")
 
         ag_lst = ['random'] * n_random_agents + ['light'] * n_reflex_agents + ['deep'] * n_deep_agents
@@ -85,8 +86,8 @@ class TronModel(Model):
             self.schedule.step()
 
 
-N_GAMES = 10
-DQN_OBJ_TYPE = DeepQNetworkReplay
+N_GAMES = 1000
+DQN_OBJ_TYPE = DeepQNetworkReplayFull
 
 if __name__ == '__main__':
     losses = []
@@ -105,7 +106,8 @@ if __name__ == '__main__':
 
     plt.plot(range(len(losses)), losses)
     plt.yscale('log')
-    plt.savefig("plots/log_loss.png")
+
+    plt.savefig(f"plots/log_loss_{time.strftime('%H-%M-%S', time.localtime())}.png")
 
     dqn_model = dqn_obj.get_model()
     dqn_model.save("model.save")
