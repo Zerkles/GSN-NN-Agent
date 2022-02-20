@@ -56,7 +56,6 @@ class DeepQNetworkReplay:
         # Take step, store results
         action = self.int_to_action[action_int]
         reward = agent.get_reward(action)
-        # print(agent.pos, action, reward)
         state_next, terminal = self.feature_extractor.get_state_a(agent, action)
 
         # add to memory, respecting memory buffer limit
@@ -71,20 +70,18 @@ class DeepQNetworkReplay:
             self.replay_memory.append(
                 {"s": state, "a": action_int, "r": reward, "state_next": state_next, "terminal": terminal})
         else:
-            if not self.replay_memory or self.replay_interesting_actions_count / len(self.replay_memory) > 0.8:
+            if not self.replay_memory or self.replay_interesting_actions_count / len(self.replay_memory) < 0.5:
                 self.replay_memory.append(
                     {"s": state, "a": action_int, "r": reward, "state_next": state_next, "terminal": terminal})
 
         # Train the nnet that approximates q(s,a), using the replay memory
         self.replay()
 
-        # self.update_step()
-
         return action
 
     @staticmethod
     def is_experience_interesting(reward, state):
-        return reward != 10 or any(s < 5 for s in state[1:])
+        return reward != 10 or any(s < 0.2 for s in state[1:])
 
     def replay(self):
         # choose <s,a,r,s',done> experiences randomly from the memory
