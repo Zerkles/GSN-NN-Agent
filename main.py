@@ -46,8 +46,7 @@ def getStartingDirection(position, isRandom):
 
 class TronModel(Model):
     def __init__(self, n_random_agents, n_reflex_agents, n_deep_agents, max_path_length, isStartingPositionRandom,
-                 isTestMode,
-                 dqn_obj=None):
+                 isTestMode, dqn_obj):
         super().__init__()
         self.schedule = RandomActivation(self)
         self.grid = MultiGrid(MAP_DIM, MAP_DIM, torus=False)
@@ -57,7 +56,7 @@ class TronModel(Model):
 
         self.dqn_obj = dqn_obj
         if isTestMode:
-            self.dqn_obj = DeepQNetwork(epsilon=0)
+            self.dqn_obj.epsilon = 0.5
             self.dqn_obj.load_model("model.save")
 
         ag_lst = ['random'] * n_random_agents + ['light'] * n_reflex_agents + ['deep'] * n_deep_agents
@@ -86,12 +85,14 @@ class TronModel(Model):
             self.schedule.step()
 
 
-if __name__ == '__main__':
-    num_games = 3000
-    dqn_obj = DeepQNetworkReplayFull(num_games)
-    losses = []
+N_GAMES = 10
+DQN_OBJ_TYPE = DeepQNetworkReplay
 
-    for n in range(num_games):
+if __name__ == '__main__':
+    losses = []
+    dqn_obj = DQN_OBJ_TYPE(num_games=N_GAMES)
+
+    for n in range(N_GAMES):
         print("Run:", n)
 
         model = TronModel(n_random_agents=0, n_reflex_agents=0, n_deep_agents=4, max_path_length=676,

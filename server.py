@@ -5,9 +5,11 @@ from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.modules import CanvasGrid
 from mesa.visualization.UserParam import UserSettableParameter
 
+import main
 from Agents.DeepAgent import DeepAgent
 from Agents.ReflexAgent import ReflexAgent
 from Agents.RandomAgent import RandomAgent
+from DQN.DeepQNetworkReplay import DeepQNetworkReplay
 from main import TronModel
 
 number_of_colors = 12
@@ -68,12 +70,13 @@ server = ModularServer(TronModel,
                        "Tron Agent Simulator",
                        {
                            "n_random_agents": UserSettableParameter("slider", "Number of Random Agents", 0, 0, 12, 1),
-                           "n_reflex_agents": UserSettableParameter("slider", "Number of Reflex Agents", 0, 0, 12, 1),
-                           "n_deep_agents": UserSettableParameter("slider", "Number of Deep Agents", 1, 0, 12, 1),
+                           "n_reflex_agents": UserSettableParameter("slider", "Number of Reflex Agents", 1, 0, 12, 1),
+                           "n_deep_agents": UserSettableParameter("slider", "Number of Deep Agents", 0, 0, 12, 1),
                            "max_path_length": UserSettableParameter("slider", "Max Lightpath Length", 676, 10, 676, 1),
                            "isTestMode": UserSettableParameter("checkbox", "Test Mode", True),
                            "isStartingPositionRandom": UserSettableParameter("checkbox", "Random Starting Positions",
-                                                                             False)
+                                                                             False),
+                           "dqn_obj": main.DQN_OBJ_TYPE()
                        }
                        )
 server.port = 8521
