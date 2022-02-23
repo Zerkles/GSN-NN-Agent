@@ -89,13 +89,11 @@ class RandomAgent(Agent):
 
     def get_reward(self, action):
         if self.will_die(action):  # Died
-            if self.model.alive_agents == 1:  # Won game
-                return 200
-            else:
-                return -500  # Lost game
+            # if (self.score / 10) > self.max_reward_threshold and isinstance(self,ReflexAgent):
+            #     print("WOW")
+            #     return 410  # Great result!
+            # elif self.model.alive_agents == 1:
+            #     return -190  # Won, but still died
+            # else:
+            return -990  # Lost game
         return 10
-        # if not self.will_die(action):
-        #     return 10  # Going forward
-        # return -100
-
-        # Killed enemy ???

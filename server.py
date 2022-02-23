@@ -13,7 +13,6 @@ from DQN.DeepQNetworkReplay import DeepQNetworkReplay
 from main import TronModel
 
 number_of_colors = 12
-MAP_DIM = 26
 
 color = ["#" + ''.join([random.choice('0123456789ABCDEF') for j in range(6)])
          for i in range(number_of_colors)]
@@ -63,7 +62,7 @@ def tronPortrayal(agent):
     return agent.portrayal
 
 
-grid = CanvasGrid(tronPortrayal, MAP_DIM, MAP_DIM, 500, 500)
+grid = CanvasGrid(tronPortrayal, main.MAP_DIM, main.MAP_DIM, 500, 500)
 
 server = ModularServer(TronModel,
                        [grid],
@@ -74,8 +73,6 @@ server = ModularServer(TronModel,
                            "n_deep_agents": UserSettableParameter("slider", "Number of Deep Agents", 1, 0, 12, 1),
                            "max_path_length": UserSettableParameter("slider", "Max Lightpath Length", 676, 10, 676, 1),
                            "isTestMode": UserSettableParameter("checkbox", "Test Mode", True),
-                           "isStartingPositionRandom": UserSettableParameter("checkbox", "Random Starting Positions",
-                                                                             False),
                            "dqn_obj": main.DQN_OBJ_TYPE()
                        }
                        )
