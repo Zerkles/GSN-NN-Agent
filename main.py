@@ -7,13 +7,11 @@ from mesa.space import MultiGrid
 from mesa.time import RandomActivation
 
 from Agents.ReflexAgent import ReflexAgent
-from DQN.DeepQNetwork import DeepQNetwork
 from Agents.RandomAgent import RandomAgent
 from Agents.DeepAgent import DeepAgent
 import matplotlib.pyplot as plt
 
 from DQN.DeepQNetworkReplay import DeepQNetworkReplay
-from DQN.DeepQNetworkReplayFull import DeepQNetworkReplayFull
 
 MAP_DIM = 20
 
@@ -127,7 +125,7 @@ def test(n_games):
     for n in range(n_games):
         print("Run:", n)
 
-        model = TronModel(n_random_agents=1, n_reflex_agents=1, n_deep_agents=1, max_path_length=676,
+        model = TronModel(n_random_agents=2, n_reflex_agents=2, n_deep_agents=2, max_path_length=676,
                           isTestMode=True, dqn_obj=dqn_obj)
 
         model.run_model()
@@ -153,8 +151,8 @@ def test(n_games):
     plt.clf()
 
 
-DQN_OBJ_TYPE = DeepQNetworkReplayFull
+DQN_OBJ_TYPE = DeepQNetworkReplay
 
 if __name__ == '__main__':
-    train(300)
-    test(1000)
+    train(3)
+    test(3)

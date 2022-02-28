@@ -27,7 +27,12 @@ class DeepQNetworkReplay:
 
         self.state_dim = 8
         self.action_dim = 4
-        self.nn_target = self.nn_q = self.construct_q_network()
+        self.nn_q = self.construct_q_network()
+        self.nn_target = self.construct_q_network()
+
+        self.C = int(self.num_games / 10.0)
+        if self.C == 0:
+            self.C = 1
 
         self.replay_memory_boring = []
         self.replay_memory_interesting = []
@@ -41,10 +46,10 @@ class DeepQNetworkReplay:
 
     def construct_q_network(self):
         model = Sequential()
-        model.add(Dense(64, input_dim=self.state_dim, activation='relu'))
-        model.add(Dense(32, activation='relu'))
+        model.add(Dense(128, input_dim=self.state_dim, activation='relu'))
+        model.add(Dense(64, activation='relu'))
         model.add(Dense(self.action_dim, activation='linear'))
-        model.compile(optimizer=tf.optimizers.Adam(learning_rate=self.alpha), loss='mse')
+        model.compile(optimizer=tf.optimizers.Adam(learning_rate=self.alpha), loss='huber_loss')
         return model
 
     def predict_move(self, agent, _):
@@ -81,6 +86,9 @@ class DeepQNetworkReplay:
 
         # Train the nnet that approximates q(s,a), using the replay memory
         self.replay()
+
+        if agent.model.schedule.steps % self.C == 0:
+            self.nn_target.set_weights(self.nn_q.get_weights())
 
         return action
 
